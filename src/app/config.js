@@ -13,4 +13,3 @@
 //   client_id: import.meta.env.VITE_AUTH0_CLIENT_ID,
 //   domain: import.meta.env.VITE_AUTH0_DOMAIN
 // };
-TEts
