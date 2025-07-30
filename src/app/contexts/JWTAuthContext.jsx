@@ -1,9 +1,6 @@
 import { createContext, useEffect, useReducer } from "react";
 import { jwtDecode } from "jwt-decode";
 import axios from "axios";
-
-axios.defaults.baseURL = "https://localhost:44356"; // Your backend URL
-// GLOBAL CUSTOM COMPONENTS
 import Loading from "app/components/MatxLoading";
 
 const initialState = {
@@ -14,12 +11,14 @@ const initialState = {
 
 const isValidToken = (accessToken) => {
   if (!accessToken) return false;
-  const decodedToken = jwtDecode(accessToken);
 
-  // const currentTime = Date.now() / 1000;
-  // return decodedToken.exp > currentTime;
-
-  return decodedToken?.id ? true : false;
+  try {
+    const decodedToken = jwtDecode(accessToken);
+    const currentTime = Date.now() / 1000; // in seconds
+    return decodedToken.exp > currentTime;
+  } catch (err) {
+    return false;
+  }
 };
 
 const setSession = (accessToken) => {
@@ -34,24 +33,33 @@ const setSession = (accessToken) => {
 
 const reducer = (state, action) => {
   switch (action.type) {
-    case "INIT": {
-      const { isAuthenticated, user } = action.payload;
-      return { ...state, user, isAuthenticated, isInitialized: true };
-    }
-    case "LOGIN": {
-      const { user } = action.payload;
-      return { ...state, user, isAuthenticated: true };
-    }
-    case "LOGOUT": {
-      return { ...state, isAuthenticated: false, user: null };
-    }
-    case "REGISTER": {
-      const { user } = action.payload;
-      return { ...state, isAuthenticated: true, user };
-    }
-    default: {
+    case "INIT":
+      return {
+        ...state,
+        user: action.payload.user,
+        isAuthenticated: action.payload.isAuthenticated,
+        isInitialized: true
+      };
+    case "LOGIN":
+      return {
+        ...state,
+        user: action.payload.user,
+        isAuthenticated: true
+      };
+    case "LOGOUT":
+      return {
+        ...state,
+        user: null,
+        isAuthenticated: false
+      };
+    case "REGISTER":
+      return {
+        ...state,
+        user: action.payload.user,
+        isAuthenticated: true
+      };
+    default:
       return state;
-    }
   }
 };
 
@@ -73,6 +81,7 @@ export const AuthProvider = ({ children }) => {
     });
 
     const { accessToken, user } = data;
+
     setSession(accessToken);
     dispatch({ type: "LOGIN", payload: { user } });
   };
@@ -90,47 +99,72 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: "REGISTER", payload: { user } });
   };
 
-
   const logout = () => {
     setSession(null);
     dispatch({ type: "LOGOUT" });
   };
 
+  // Initialize authentication on page load
   useEffect(() => {
-    (async () => {
+    const initialize = async () => {
       try {
-        const accessToken = window.localStorage.getItem("accessToken");
+        const accessToken = localStorage.getItem("accessToken");
 
         if (accessToken && isValidToken(accessToken)) {
           setSession(accessToken);
           const response = await axios.get("/api/auth/profile");
           const { user } = response.data;
-
+          debugger;
           dispatch({
             type: "INIT",
             payload: { isAuthenticated: true, user }
           });
         } else {
+          setSession(null);
           dispatch({
             type: "INIT",
             payload: { isAuthenticated: false, user: null }
           });
         }
       } catch (err) {
-        console.log(err);
-
+        console.error("Auth init failed:", err);
+        setSession(null);
         dispatch({
           type: "INIT",
           payload: { isAuthenticated: false, user: null }
         });
       }
-    })();
+    };
+
+    initialize();
   }, []);
+
+  // Optional: Auto-logout when token expires
+  useEffect(() => {
+    if (state.isAuthenticated) {
+      const token = localStorage.getItem("accessToken");
+      const decoded = jwtDecode(token);
+      const expirationTime = decoded.exp * 1000; // convert to ms
+      const timeout = expirationTime - Date.now();
+
+      if (timeout > 0) {
+        const timer = setTimeout(() => {
+          logout();
+        }, timeout);
+
+        return () => clearTimeout(timer);
+      } else {
+        logout();
+      }
+    }
+  }, [state.isAuthenticated]);
 
   if (!state.isInitialized) return <Loading />;
 
   return (
-    <AuthContext.Provider value={{ ...state, method: "JWT", login, logout, register }}>
+    <AuthContext.Provider
+      value={{ ...state, method: "JWT", login, logout, register }}
+    >
       {children}
     </AuthContext.Provider>
   );
