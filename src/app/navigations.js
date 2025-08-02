@@ -10,10 +10,8 @@ const navigations = [
       { name: "Brands", path: "/pages/Brands", iconText: "D" },
       { name: "Attributes", path: "/material/Attributes", iconText: "E" },
       { name: "Tags", path: "/material/Tags", iconText: "F" },
-      { name: "Inventory / Stock Management", path: "/material/Inventory", iconText: "G" },
-      { name: "Product Reviews", path: "/material/ProductReviews", iconText: "H" },
-      { name: "Product Questions", path: "/material/ProductQuestions", iconText: "I" },
-      { name: "Product Import / Export", path: "/material/ProductImportExport", iconText: "J" }
+      { name: "Inventory", path: "/material/Inventory", iconText: "G" },
+    
     ]
   },
   {

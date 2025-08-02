@@ -24,6 +24,10 @@ import {
 import { DeleteForeverOutlined, Edit } from "@mui/icons-material";
 import { Breadcrumb, SimpleCard } from "app/components";
 import ProductContext from "../../../contexts/ProductContext";
+//import swal from "sweetalert2";
+import swal from "sweetalert";
+//import withReactContent from 'sweetalert2-react-content';
+//const GlamSwal = withReactContent(swal);
 
 // Styles
 const StyledTable = styled(Table)(() => ({
@@ -51,7 +55,7 @@ const StatusOptions = [
 ];
 
 const Brands = () => {
-    const { addBrand, getBrandList, brands } = useContext(ProductContext);
+    const { addBrand, getBrandList, brands, updateBrand, deleteBrand } = useContext(ProductContext);
 
     const [brandData, setBrandData] = useState([]);
     const [alert, setAlert] = useState({ open: false, message: "", type: "" });
@@ -59,6 +63,7 @@ const Brands = () => {
     const [isUpdate, setIsUpdate] = useState(false);
     const [brand, setBrand] = useState("");
     const [status, setStatus] = useState("Active");
+    const [brandId, setBrandId] = useState(0);
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
 
@@ -76,10 +81,11 @@ const Brands = () => {
         setOpenAddNew(true);
     };
 
-    const handleOpenUpdate = (brand) => {
+    const handleOpenUpdate = (e, brand) => {
         setIsUpdate(true);
         setBrand(brand.brandName);
         setStatus(brand.status);
+        setBrandId(brand.id);
         setOpenAddNew(true);
     };
 
@@ -87,27 +93,92 @@ const Brands = () => {
         setOpenAddNew(false);
     };
 
-    const handleDelete = (brand) => {
-        // Replace with real delete logic
-        showAlert(`Brand ${brand.brandName} deleted successfully!`, "error");
+    const handleDelete = async (e, brand) => {
+        debugger
+        e.preventDefault();
+        e.stopPropagation(); // Prevent row click event
+        if (!brand || !brand.id) {
+            return showAlert("Invalid brand data", "error");
+        }
+
+        swal({
+            title: "Are you sure?",
+            text: `Are you sure you want to delete the brand "${brand.brandName}"?`,
+            icon: "warning",
+            dangerMode: true,
+            buttons: true,
+        })
+            .then(async (willDelete) => {
+                if (willDelete) {
+                    const deleteResult = await deleteBrand(brand.id, brand.brandName, brand.status);
+                    if (deleteResult.success) {
+                        showAlert(`Brand "${brand.brandName}" deleted successfully!`, "success");
+                    } else {
+                        showAlert(deleteResult.error || "Failed to delete brand", "error");
+                    }
+
+                    fetchBrandList(); // refresh list after delete
+                    setOpenAddNew(false);
+                }
+            });
+
+        // Call deleteBrand function from context
+
     };
 
-    const handleAddUpdateBrand = async () => {
+    const handleAddBrand = async () => {
         if (!brand.trim()) {
             return showAlert("Brand name is required", "error");
         }
 
         const result = await addBrand(brand, status);
 
+
         if (result.success) {
             showAlert(isUpdate ? `Brand "${brand}" updated!` : `Brand "${brand}" added!`, "success");
             setOpenAddNew(false);
+            setBrand("");
+            setStatus("Active");
+            setBrandId(0);
+            setIsUpdate(false);
             fetchBrandList(); // refresh list after add/update
         } else {
-            showAlert(result.error || "Failed to add/update brand", "error");
+            showAlert(result.error || "Failed to add brand", "error");
         }
     };
+    const handleUpdateBrand = async () => {
+        debugger;
+        if (!brand.trim()) {
+            return showAlert("Brand name is required", "error");
+        }
 
+
+        swal({
+            title: "Are you sure?",
+            text: `Are you sure you want to update the brand "${brand}"?`,
+            icon: "warning",
+            dangerMode: true,
+            buttons: true,
+
+        })
+            .then(async (willUpdate) => {
+                if (willUpdate) {
+                    const result = await updateBrand(brandId, brand, status);
+                    if (result.success) {
+                        showAlert(`Brand "${brand}" updated successfully!`, "success");
+                        setOpenAddNew(false);
+                        setBrandId(0);
+                        setBrand("");
+                        setStatus("Active");
+                        setIsUpdate(false);
+                        fetchBrandList(); // refresh list after update
+                    } else {
+                        showAlert(result.error || "Failed to update brand", "error");
+                    }
+                }
+            });
+
+    };
     const handleCloseAlert = () => {
         setAlert({ ...alert, open: false });
     };
@@ -122,10 +193,10 @@ const Brands = () => {
     const fetchBrandList = useCallback(async () => {
         try {
             const result = await getBrandList();
-            debugger;
             if (result.success && Array.isArray(result.data) && result.data.length > 0) {
                 setBrandData(result.data);
-                showAlert("Brand list fetched successfully!", "success");
+                fetchBrandList();
+                //showAlert("Brand list fetched successfully!", "success");
             } else {
                 setBrandData([]);
                 showAlert("No brand data found.", "error");
@@ -169,10 +240,10 @@ const Brands = () => {
                                             <TableCell align="left">{b.brandName}</TableCell>
                                             <TableCell align="left">{b.status}</TableCell>
                                             <TableCell align="left">
-                                                <IconButton onClick={() => handleOpenUpdate(b)}>
+                                                <IconButton onClick={(e) => handleOpenUpdate(e, b)}>
                                                     <Edit color="primary" />
                                                 </IconButton>
-                                                <IconButton onClick={() => handleDelete(b)}>
+                                                <IconButton onClick={(e) => handleDelete(e, b)}>
                                                     <DeleteForeverOutlined color="error" />
                                                 </IconButton>
                                             </TableCell>
@@ -194,7 +265,7 @@ const Brands = () => {
                 </SimpleCard>
             </Stack>
 
-            <Dialog open={openAddNew} onClose={handleCloseAddUpdate}>
+            <Dialog open={openAddNew} onClose={handleCloseAddUpdate} className="modal-backdrop">
                 <DialogTitle>{isUpdate ? "Update Brand" : "Add New Brand"}</DialogTitle>
                 <DialogContent>
                     <DialogContentText>Brand Name</DialogContentText>
@@ -220,9 +291,15 @@ const Brands = () => {
                     <Button variant="outlined" color="secondary" onClick={handleCloseAddUpdate}>
                         Cancel
                     </Button>
-                    <Button variant="contained" onClick={handleAddUpdateBrand} color="primary">
-                        {isUpdate ? "Update" : "Save"}
-                    </Button>
+                    {isUpdate ? (
+                        <Button variant="contained" onClick={handleUpdateBrand} color="primary">
+                            Update
+                        </Button>
+                    ) : (
+                        <Button variant="contained" onClick={handleAddBrand} color="primary">
+                            Save
+                        </Button>
+                    )}
                 </DialogActions>
             </Dialog>
 

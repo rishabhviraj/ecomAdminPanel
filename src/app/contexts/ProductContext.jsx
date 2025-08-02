@@ -22,6 +22,18 @@ const reducer = (state, action) => {
                 brands: [...state.brands, action.payload],
                 error: null
             };
+        case "UPDATE_BRAND":
+            return {
+                ...state,
+                brands: [...state.brands, action.payload],
+                error: null
+            };
+        case "DELETE_BRAND":
+            return {
+                ...state,
+                brands: [...state.brands, action.payload],
+                error: null
+            };
         case "SET_ERROR":
             return {
                 ...state,
@@ -37,6 +49,8 @@ const ProductContext = createContext({
     brands: [],
     addBrand: () => { },
     getBrandList: () => { },
+    updateBrand: () => { },
+    deleteBrand: () => { },
     error: null
 });
 
@@ -60,10 +74,10 @@ export const ProductProvider = ({ children }) => {
             return { success: false, error: e.message || "Failed to add brand" }; // ❌ Return error
         }
     };
+
     const getBrandList = async () => {
         try {
             const res = await axios.post("/api/Product/GetBrandList");
-            debugger
             if (res.data && res.data.success && Array.isArray(res.data.data)) {
                 dispatch({
                     type: "GET_BRAND_LIST",
@@ -87,10 +101,45 @@ export const ProductProvider = ({ children }) => {
         }
     };
 
+    const updateBrand = async (id, brandName, status) => {
+        try {
+            debugger;
+            const res = await axios.post("/api/Product/UpdateBrand", {
+                id,
+                brandName,
+                status
+            });
+            dispatch({ type: "UPDATE_BRAND", payload: res.data });
+            return { success: true, }; // ✅ Indicate success
+        } catch (e) {
+            console.error(e);
+            dispatch({ type: "SET_ERROR", payload: e.message || "Failed to update brand" });
+            return { success: false, error: e.message || "Failed to update brand" }; // ❌ Return error
+        }
+    }
+
+    const deleteBrand = async (id, brandName, status) => {
+        try {
+            debugger;
+
+            const res = await axios.post("/api/Product/DeleteBrand", {
+                id,
+                brandName,
+                status
+            });
+            dispatch({ type: "DELETE_BRAND", payload: res.data });
+            return { success: true }; // ✅ Indicate success
+        } catch (e) {
+            console.error(e);
+            dispatch({ type: "SET_ERROR", payload: e.message || "Failed to delete brand" });
+            return { success: false, error: e.message || "Failed to delete brand" }; // ❌ Return error
+        }
+    };
+
 
 
     return (
-        <ProductContext.Provider value={{ ...state, addBrand, getBrandList, brands: state.brands }}>
+        <ProductContext.Provider value={{ ...state, addBrand, getBrandList, brands: state.brands, updateBrand, deleteBrand }}>
             {children}
         </ProductContext.Provider>
     );

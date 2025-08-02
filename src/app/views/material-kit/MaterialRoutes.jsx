@@ -1,6 +1,5 @@
 import { lazy } from "react";
 import Loadable from "app/components/Loadable";
-import Brand from "app/components/Brand";
 
 const AppForm = Loadable(lazy(() => import("./forms/AppForm")));
 const AppMenu = Loadable(lazy(() => import("./menu/AppMenu")));
@@ -21,6 +20,11 @@ const Products = Loadable(lazy(() => import("./ProductManagement/products")));
 const Customers = Loadable(lazy(() => import("./CustomerManagement/customers")));
 const Orders = Loadable(lazy(() => import("./OrderManagement/orders")));
 const Brands = Loadable(lazy(() => import("./ProductManagement/brands")));
+const AppInventory = Loadable(lazy(() => import("./ProductManagement/inventory")));
+const AppAttributes = Loadable(lazy(() => import("./ProductManagement/attributes")));
+const AppTags = Loadable(lazy(() => import("./ProductManagement/tags")));
+const AppCategories = Loadable(lazy(() => import("./ProductManagement/categories")));
+
 const materialRoutes = [
   { path: "/material/table", element: <AppTable /> },
   { path: "/material/form", element: <AppForm /> },
@@ -42,6 +46,11 @@ const materialRoutes = [
   { path: "/pages/customers", element: <Customers /> },
   { path: "/pages/orders", element: <Orders /> },
   { path: "/pages/brands", element: <Brands /> },
+  { path: "/pages/inventory", element: <AppInventory /> },
+  { path: "/pages/attributes", element: <AppAttributes /> },
+  { path: "/pages/tags", element: <AppTags /> },
+  { path: "/pages/categories", element: <AppCategories /> },
+
 
 ];
 

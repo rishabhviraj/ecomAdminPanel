@@ -11,6 +11,8 @@ import axios from "axios";
 axios.defaults.baseURL = "https://localhost:44356"; // Your backend URL
 // ROUTES
 import routes from "./routes";
+import "../../src/main.css"; // Import main.css
+
 
 export default function App() {
   const content = useRoutes(routes);
